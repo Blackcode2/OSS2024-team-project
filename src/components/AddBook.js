@@ -1,225 +1,167 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useRef } from "react";
+import "bootstrap/dist/css/bootstrap.min.css";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 
-const BookList = () => {
-  const [query, setQuery] = useState("");
-  const [books, setBooks] = useState([]);
-  const [filteredBooks, setFilteredBooks] = useState([]);
-  const [category, setCategory] = useState("All");
-
-  const key = "AIzaSyCBFn95bvTPQaBPZnCS-SvQUO_rhgbRJUg";
+const AddBook = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const usernameCheck = useRef(null);
+  const booknameCheck = useRef(null);
+  const priceCheck = useRef(null);
+  const quantityCheck = useRef(null);
+  const destinationCheck = useRef(null);
 
-  // load data
-  const fetchAllBooks = () => {
-    fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=all&key=${key}&maxResults=20`
-    )
-      .then((response) => response.json())
-      .then((data) => {
-        setBooks(data.items || []);
-        setFilteredBooks(data.items || []);
+  const [newBook, setNewBook] = useState({
+    username: "",
+    bookname: location.state?.bookname || "",
+    price: location.state?.price || "",
+    coupon: false,
+    quantity: "",
+    date: "",
+    destination: "",
+  });
+
+  const addBook = () => {
+    fetch("https://6746607e512ddbd807fba991.mockapi.io/Book", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newBook),
+    })
+      .then((response) => {
+        if (response.ok) {
+          console.log("Book added successfully");
+          setNewBook({
+            username: "",
+            bookname: "",
+            price: "",
+            coupon: false,
+            quantity: "",
+            date: "",
+            destination: "",
+          });
+          navigate("/list"); // useNavigate Hook
+        }
       })
-      .catch((error) => console.error("Error fetching books:", error));
+      .catch((error) => {
+        console.error("Error adding book:", error);
+      });
   };
 
-  // search
-  const searchBooks = () => {
-    fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=${query}&key=${key}&maxResults=20`
-    )
-      .then((response) => response.json())
-      .then((data) => {
-        setBooks(data.items || []);
-        setFilteredBooks(data.items || []);
-      })
-      .catch((error) => console.error("Error searching books:", error));
+  const checkValid = () => {
+    let bool = true;
+
+    if (newBook.username === "") {
+      alert("Please enter your name");
+      usernameCheck.current.focus();
+      bool = false;
+    } else if (newBook.bookname === "") {
+      alert("Please enter book name");
+      booknameCheck.current.focus();
+      bool = false;
+    } else if (!newBook.price || newBook.price <= 0) {
+      alert("Please enter the price");
+      priceCheck.current.focus();
+      bool = false;
+    } else if (!newBook.quantity || newBook.quantity <= 0) {
+      alert("Please enter the quantity");
+      quantityCheck.current.focus();
+      bool = false;
+    } else if (newBook.destination === "") {
+      alert("Please enter your shipping address");
+      destinationCheck.current.focus();
+      bool = false;
+    }
+    return bool;
   };
 
-  // filtering along category
-  const filterByCategory = (category) => {
-    setCategory(category);
-    if (category === "All") {
-      setFilteredBooks(books);
-    } else {
-      const filtered = books.filter((book) =>
-        book.volumeInfo.categories
-          ? book.volumeInfo.categories.includes(category)
-          : false
-      );
-      setFilteredBooks(filtered);
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (checkValid()) {
+      addBook();
     }
   };
 
-  const addToCart = (book) => {
-    navigate(`/add/`, {
-      state: {
-        bookname: book.volumeInfo.title,
-        price: book.saleInfo?.retailPrice?.amount || "Not available",
-      },
-    });
-  };
-
-  useEffect(() => {
-    fetchAllBooks();
-  }, []);
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    searchBooks();
-  };
-
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>Book List</h1>
-
-      <form onSubmit={handleSearch} style={{ marginBottom: "20px" }}>
+    <div
+      className="container"
+      style={{
+        maxWidth: "600px",
+        width: "100%",
+        padding: "20px",
+      }}
+    >
+      <br></br>
+      <h2>Add Book in Shopping Basket</h2>
+      <form onSubmit={handleSubmit}>
         <input
           type="text"
-          placeholder="Search for book"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          style={{ padding: "10px", width: "300px" }}
+          placeholder="User Name"
+          className="form-control mb-2"
+          ref={usernameCheck}
+          value={newBook.username}
+          onChange={(e) => setNewBook({ ...newBook, username: e.target.value })}
         />
-        <button
-          type="submit"
-          style={{
-            padding: "10px 20px",
-            marginLeft: "10px",
-            borderRadius: "5px",
-            border: "1px solid black",
-          }}
-        >
-          Search
+        <input
+          type="text"
+          placeholder="Book Name"
+          className="form-control mb-2"
+          ref={booknameCheck}
+          value={newBook.bookname}
+          onChange={(e) => setNewBook({ ...newBook, bookname: e.target.value })}
+        />
+        <input
+          type="text"
+          placeholder="Price"
+          className="form-control mb-2"
+          ref={priceCheck}
+          value={newBook.price}
+          onChange={(e) => setNewBook({ ...newBook, price: e.target.value })}
+        />
+        <div className="form-check mb-2">
+          <input
+            type="checkbox"
+            className="form-check-input"
+            id="coupon"
+            checked={newBook.coupon}
+            onChange={(e) =>
+              setNewBook({ ...newBook, coupon: e.target.checked })
+            }
+          />
+          <label className="form-check-label">Use Coupon</label>
+        </div>
+        <input
+          type="text"
+          placeholder="Quantity"
+          className="form-control mb-2"
+          ref={quantityCheck}
+          value={newBook.quantity}
+          onChange={(e) => setNewBook({ ...newBook, quantity: e.target.value })}
+        />
+        <input
+          type="date"
+          className="form-control mb-2"
+          value={newBook.date}
+          onChange={(e) => setNewBook({ ...newBook, date: e.target.value })}
+        />
+        <input
+          type="text"
+          placeholder="Shipping Address"
+          className="form-control mb-2"
+          ref={destinationCheck}
+          value={newBook.destination}
+          onChange={(e) =>
+            setNewBook({ ...newBook, destination: e.target.value })
+          }
+        />
+        <button type="submit" className="btn btn-primary">
+          Add
         </button>
+        <Link to="/list" className="btn btn-secondary">
+          Cancel
+        </Link>
       </form>
-
-      <div style={{ marginBottom: "20px" }}>
-        <button
-          onClick={() => filterByCategory("All")}
-          style={{
-            padding: "10px 20px",
-            marginRight: "10px",
-            borderRadius: "5px",
-            border: "1px solid black",
-            backgroundColor: category === "All" ? "#ddd" : "#fff",
-          }}
-        >
-          All
-        </button>
-        <button
-          onClick={() => filterByCategory("Fiction")}
-          style={{
-            padding: "10px 20px",
-            marginRight: "10px",
-            borderRadius: "5px",
-            border: "1px solid black",
-            backgroundColor: category === "Fiction" ? "#ddd" : "#fff",
-          }}
-        >
-          Fiction
-        </button>
-        <button
-          onClick={() => filterByCategory("Science")}
-          style={{
-            padding: "10px 20px",
-            marginRight: "10px",
-            borderRadius: "5px",
-            border: "1px solid black",
-            backgroundColor: category === "Science" ? "#ddd" : "#fff",
-          }}
-        >
-          Science
-        </button>
-        <button
-          onClick={() => filterByCategory("History")}
-          style={{
-            padding: "10px 20px",
-            marginRight: "10px",
-            borderRadius: "5px",
-            border: "1px solid black",
-            backgroundColor: category === "History" ? "#ddd" : "#fff",
-          }}
-        >
-          History
-        </button>
-        <button
-          onClick={() => filterByCategory("Art")}
-          style={{
-            padding: "10px 20px",
-            borderRadius: "5px",
-            border: "1px solid black",
-            backgroundColor: category === "Art" ? "#ddd" : "#fff",
-          }}
-        >
-          Art
-        </button>
-      </div>
-
-      <div>
-        {filteredBooks.length === 0 ? (
-          <p>No books found.</p>
-        ) : (
-          filteredBooks.map((book) => (
-            <div
-              key={book.id}
-              style={{
-                display: "flex",
-                gap: "10px",
-                marginBottom: "20px",
-                borderBottom: "1px solid #ddd",
-                paddingBottom: "10px",
-              }}
-            >
-              {book.volumeInfo.imageLinks && (
-                <img
-                  src={book.volumeInfo.imageLinks.thumbnail}
-                  alt={book.volumeInfo.title}
-                  style={{
-                    width: "100px",
-                    height: "150px",
-                  }}
-                />
-              )}
-
-              <div>
-                <h5>{book.volumeInfo.title}</h5>
-                <p>
-                  Authors:{" "}
-                  {book.volumeInfo.authors
-                    ? book.volumeInfo.authors.join(", ")
-                    : "Unknown"}
-                  <br></br>
-                  Categories:{" "}
-                  {book.volumeInfo.categories
-                    ? book.volumeInfo.categories.join(", ")
-                    : "None"}
-                  <br></br>
-                  price:{" "}
-                  {book.saleInfo && book.saleInfo.retailPrice
-                    ? `₩${book.saleInfo.retailPrice.amount}`
-                    : "Not available"}
-                </p>
-                <button
-                  onClick={() => addToCart(book)}
-                  style={{
-                    padding: "5px 10px",
-                    backgroundColor: "#28a745",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "5px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Add to Cart
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
     </div>
   );
 };
 
-export default BookList;
+export default AddBook;
